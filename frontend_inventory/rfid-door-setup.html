@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Door Frame Setup</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2e559c 0%, #2a5298 100%);
+            font-family: 'Arial', sans-serif;
+        }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            right: 20px; /* move info box to top-right */
+            color: white;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        .info h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        .info ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+    /* colored labels for quick visual reference (only label text is colored) */
+    .info .rfid-label { color: #ff4d4d; }
+    .info .sensor1-label { color: #4da6ff; }
+    .info .sensor2-label { color: #66ff66; }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="info">
+        <h3>RFID Door Access System</h3>
+        <ul>
+            <li><strong>Door:</strong> 8 feet tall</li>
+            <li><strong><span class="rfid-label">RFID:</span></strong> Red beam (center)</li>
+            <li><strong><span class="sensor1-label">Sensor 1:</span></strong> Blue beam (outside)</li>
+            <li><strong><span class="sensor2-label">Sensor 2:</span></strong> Green beam (inside)</li>
+        </ul>
+    </div>
+    <!-- <div class="controls">
+        Drag to rotate • Scroll to zoom
+    </div> -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let roomGroup, personGroup, chairGroup;
+        let leftBeam, centerBeam, rightBeam;
+        let mouseDown = false;
+        let mouseX = 0, mouseY = 0;
+        let targetRotationX = -0.15;
+        let targetRotationY = 0.6;
+        let currentRotationX = -0.15;
+        let currentRotationY = 0.6;
+        let animationTime = 0;
+
+        // Measurements (converting feet to meters: 1 foot ≈ 0.3048 meters)
+        const DOOR_HEIGHT = 8 * 0.3048; // 8 feet = ~2.44 meters
+        const DOOR_WIDTH = 4 * 0.3048; // 4 feet wider door = ~1.22 meters
+        const PERSON_HEIGHT = 6 * 0.3048; // 6 feet = ~1.83 meters
+        const ROOM_WIDTH = 10;
+        const ROOM_DEPTH = 10;
+        const ROOM_HEIGHT = 10 * 0.3048; // 10 feet = ~3.05 meters
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a2332);
+
+            camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.000000001, 50000000);
+            // camera.position.set(6, 2, 8);
+            camera.position.set(10, 7, 3);
+            // camera.lookAt(0, 1.5, 0);
+            camera.lookAt(0, 1, 2);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(5, 10, 7);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.left = -15;
+            directionalLight.shadow.camera.right = 15;
+            directionalLight.shadow.camera.top = 15;
+            directionalLight.shadow.camera.bottom = -15;
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 0.1);
+            pointLight.position.set(-3, 3, 5);
+            scene.add(pointLight);
+
+            roomGroup = new THREE.Group();
+            scene.add(roomGroup);
+
+            createRoom();
+            createDoorFrame();
+            createRaspberryPi();
+            createSensors();
+            createBeams();
+            createPerson();
+            createChair();
+
+            window.addEventListener('resize', onWindowResize);
+            // document.addEventListener('mousedown', onMouseDown);
+            // document.addEventListener('mousemove', onMouseMove);
+            // document.addEventListener('mouseup', onMouseUp);
+            // document.addEventListener('wheel', onWheel);
+
+            animate();
+        }
+
+        function createRoom() {
+            // Floor
+            const floorGeometry = new THREE.PlaneGeometry(ROOM_WIDTH, ROOM_DEPTH);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8b7355,
+                roughness: 0.8
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            roomGroup.add(floor);
+
+            // Ceiling
+            // const ceiling = new THREE.Mesh(floorGeometry, new THREE.MeshStandardMaterial({ 
+            //     color: 0xf0f0f0,
+            //     roughness: 0.9
+            // }));
+            // ceiling.rotation.x = Math.PI / 2;
+            // ceiling.position.y = ROOM_HEIGHT;
+            // ceiling.receiveShadow = true;
+            // roomGroup.add(ceiling);
+
+            // Walls
+            const wallMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xd4c4b0,
+                roughness: 0.9
+            });
+
+            // Back wall
+            const backWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_WIDTH, ROOM_HEIGHT),
+                wallMaterial
+            );
+            backWall.position.set(0, ROOM_HEIGHT/2, -ROOM_DEPTH/2);
+            backWall.receiveShadow = true;
+            roomGroup.add(backWall);
+
+            // Left wall
+            const leftWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_DEPTH, ROOM_HEIGHT),
+                wallMaterial
+            );
+            leftWall.position.set(-ROOM_WIDTH/2, ROOM_HEIGHT/2, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            leftWall.receiveShadow = true;
+            roomGroup.add(leftWall);
+
+            // Right wall
+            const rightWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_DEPTH, ROOM_HEIGHT),
+                wallMaterial
+            );
+            rightWall.position.set(ROOM_WIDTH/2, ROOM_HEIGHT/2, 0);
+            rightWall.rotation.y = -Math.PI / 2;
+            rightWall.receiveShadow = true;
+            roomGroup.add(rightWall);
+
+            // Front wall - left side (beside door)
+            const frontWallLeft = new THREE.Mesh(
+                new THREE.PlaneGeometry((ROOM_WIDTH - DOOR_WIDTH) / 2, ROOM_HEIGHT),
+                wallMaterial
+            );
+            frontWallLeft.position.set(-ROOM_WIDTH/2 + (ROOM_WIDTH - DOOR_WIDTH)/4, ROOM_HEIGHT/2, ROOM_DEPTH/2);
+            frontWallLeft.rotation.y = Math.PI;
+            frontWallLeft.receiveShadow = true;
+            roomGroup.add(frontWallLeft);
+
+            // Front wall - right side (beside door)
+            const frontWallRight = new THREE.Mesh(
+                new THREE.PlaneGeometry((ROOM_WIDTH - DOOR_WIDTH) / 2, ROOM_HEIGHT),
+                wallMaterial
+            );
+            frontWallRight.position.set(ROOM_WIDTH/2 - (ROOM_WIDTH - DOOR_WIDTH)/4, ROOM_HEIGHT/2, ROOM_DEPTH/2);
+            frontWallRight.rotation.y = Math.PI;
+            frontWallRight.receiveShadow = true;
+            roomGroup.add(frontWallRight);
+
+            // Front wall - above door
+            const frontWallTop = new THREE.Mesh(
+                new THREE.PlaneGeometry(DOOR_WIDTH, ROOM_HEIGHT - DOOR_HEIGHT),
+                wallMaterial
+            );
+            frontWallTop.position.set(0, DOOR_HEIGHT + (ROOM_HEIGHT - DOOR_HEIGHT)/2, ROOM_DEPTH/2);
+            frontWallTop.rotation.y = Math.PI;
+            frontWallTop.receiveShadow = true;
+            roomGroup.add(frontWallTop);
+        }
+
+        function createDoorFrame() {
+            const frameThickness = 0.15;
+            const frameDepth = 0.25;
+
+            const frameMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4a4a4a,
+                metalness: 0.1,
+                roughness: 0.6
+            });
+
+            // Left post - 8 feet tall
+            const leftPost = new THREE.Mesh(
+                new THREE.BoxGeometry(frameThickness, DOOR_HEIGHT, frameDepth),
+                frameMaterial
+            );
+            leftPost.position.set(-DOOR_WIDTH/2 - frameThickness/2, DOOR_HEIGHT/2, ROOM_DEPTH/2);
+            leftPost.castShadow = true;
+            roomGroup.add(leftPost);
+
+            // Right post - 8 feet tall
+            const rightPost = new THREE.Mesh(
+                new THREE.BoxGeometry(frameThickness, DOOR_HEIGHT, frameDepth),
+                frameMaterial
+            );
+            rightPost.position.set(DOOR_WIDTH/2 + frameThickness/2, DOOR_HEIGHT/2, ROOM_DEPTH/2);
+            rightPost.castShadow = true;
+            roomGroup.add(rightPost);
+
+            // Top frame - door width
+            const topFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(DOOR_WIDTH + frameThickness * 2, frameThickness, frameDepth),
+                frameMaterial
+            );
+            topFrame.position.set(0, DOOR_HEIGHT - frameThickness/2, ROOM_DEPTH/2);
+            topFrame.castShadow = true;
+            roomGroup.add(topFrame);
+
+            // Open door (swung open to the left)
+            const doorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x6b4423,
+                roughness: 0.7
+            });
+            
+            const actualDoorWidth = DOOR_WIDTH - 0.05;
+            const actualDoorHeight = DOOR_HEIGHT - 0.1;
+            
+            const door = new THREE.Mesh(
+                new THREE.BoxGeometry(0.08, actualDoorHeight, actualDoorWidth),
+                doorMaterial
+            );
+            door.position.set(-DOOR_WIDTH/2 - frameThickness/2 - 0.5, actualDoorHeight/2 + 0.05, ROOM_DEPTH/2 + actualDoorWidth/2 - 0.1);
+            door.castShadow = true;
+            door.receiveShadow = true;
+            door.rotation.y = -65 * Math.PI / 180; // Slight tilt for realism
+            roomGroup.add(door);
+
+            // // Door handle on open door
+            // const handleMaterial = new THREE.MeshStandardMaterial({ 
+            //     color: 0xc0c0c0,
+            //     metalness: 0.9,
+            //     roughness: 0.2
+            // });
+            // const handle = new THREE.Mesh(
+            //     new THREE.BoxGeometry(0.12, 0.05, 0.15),
+            //     handleMaterial
+            // );
+            // handle.position.set(-DOOR_WIDTH/2 - frameThickness/2, DOOR_HEIGHT/2 - 0.2, ROOM_DEPTH/2 + 0.3);
+            // handle.castShadow = true;
+            // roomGroup.add(handle);
+        }
+
+        function createRaspberryPi() {
+            const piGroup = new THREE.Group();
+            
+            // Mounting bracket on top of door frame
+            const bracketMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x333333,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const bracket = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.02, 0.25),
+                bracketMaterial
+            );
+            bracket.castShadow = true;
+            piGroup.add(bracket);
+
+            // Raspberry Pi board (green PCB) - on top of bracket
+            const piMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2d7a2d,
+                roughness: 0.5,
+                metalness: 0.2
+            });
+            const piBoard = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 0.02, 0.2),
+                piMaterial
+            );
+            piBoard.position.set(0, 0.02, 0);
+            piBoard.castShadow = true;
+            piGroup.add(piBoard);
+
+            // RFID reader (white/cream colored) - on top of Pi
+            const rfidMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xe8e8e8,
+                roughness: 0.4
+            });
+            const rfidReader = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.03, 0.15),
+                rfidMaterial
+            );
+            rfidReader.position.set(0, 0.045, 0);
+            rfidReader.castShadow = true;
+            piGroup.add(rfidReader);
+
+            // LED indicator (red)
+            const ledMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.5
+            });
+            const led = new THREE.Mesh(
+                new THREE.SphereGeometry(0.015, 8, 8),
+                ledMaterial
+            );
+            led.position.set(0.1, 0.065, 0);
+            piGroup.add(led);
+
+            // Position on top of door frame (center, top)
+            piGroup.position.set(0, DOOR_HEIGHT + 0.01, ROOM_DEPTH/2);
+            roomGroup.add(piGroup);
+
+            // Add label
+            // createLabel('Raspberry Pi Zero 2W\n+ M5Stack RFID', 0, DOOR_HEIGHT - 0.3, ROOM_DEPTH/2 + 0.3);
+        }
+
+        function createSensors() {
+            const sensorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2a5298,
+                metalness: 0.6,
+                roughness: 0.4
+            });
+
+            // Left sensor (inside) - top left of door frame
+            const leftSensorGroup = new THREE.Group();
+            const leftSensorBody = new THREE.Mesh(
+                new THREE.BoxGeometry(0.12, 0.08, 0.06),
+                sensorMaterial
+            );
+            leftSensorBody.castShadow = true;
+            leftSensorGroup.add(leftSensorBody);
+
+            const lensMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x000000,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const leftLens = new THREE.Mesh(
+                new THREE.SphereGeometry(0.02, 16, 16),
+                lensMaterial
+            );
+            leftLens.position.set(0, -0.03, 0);
+            leftSensorGroup.add(leftLens);
+
+            leftSensorGroup.position.set(-DOOR_WIDTH/2 - 0.08, DOOR_HEIGHT - 0.05, ROOM_DEPTH/2 + 0.15);
+            leftSensorGroup.rotation.x = Math.PI / 2;
+            roomGroup.add(leftSensorGroup);
+            // createLabel('Sensor 1\n(Inside)', -DOOR_WIDTH/2 - 0.08, DOOR_HEIGHT - 0.35, ROOM_DEPTH/2 + 0.4);
+
+            // Right sensor (outside) - top right of door frame
+            const rightSensorGroup = new THREE.Group();
+            const rightSensorBody = new THREE.Mesh(
+                new THREE.BoxGeometry(0.12, 0.08, 0.06),
+                sensorMaterial
+            );
+            rightSensorBody.castShadow = true;
+            rightSensorGroup.add(rightSensorBody);
+
+            const rightLens = new THREE.Mesh(
+                new THREE.SphereGeometry(0.02, 16, 16),
+                lensMaterial
+            );
+            rightLens.position.set(0, -0.03, 0);
+            rightSensorGroup.add(rightLens);
+
+            rightSensorGroup.position.set(DOOR_WIDTH/2 + 0.08, DOOR_HEIGHT - 0.05, ROOM_DEPTH/2 - 0.15);
+            rightSensorGroup.rotation.x = Math.PI / 2;
+            roomGroup.add(rightSensorGroup);
+            // createLabel('Sensor 2\n(Outside)', DOOR_WIDTH/2 + 0.08, DOOR_HEIGHT - 0.35, ROOM_DEPTH/2 - 0.4);
+
+            // Wiring from sensors to Pi
+            createWire(-DOOR_WIDTH/2 - 0.08, DOOR_HEIGHT - 0.05, ROOM_DEPTH/2 + 0.15, 0, DOOR_HEIGHT + 0.01, ROOM_DEPTH/2);
+            createWire(DOOR_WIDTH/2 + 0.08, DOOR_HEIGHT - 0.05, ROOM_DEPTH/2 - 0.15, 0, DOOR_HEIGHT + 0.01, ROOM_DEPTH/2);
+        }
+
+        function createBeams() {
+            // Left sensor beam (blue) - pointing up from floor to sensor
+            const leftBeamGeometry = new THREE.ConeGeometry(0.4, DOOR_HEIGHT - 0.05, 32, 1, true);
+            const leftBeamMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x0088ff,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
+            leftBeam = new THREE.Mesh(leftBeamGeometry, leftBeamMaterial);
+            leftBeam.position.set(-DOOR_WIDTH/2 - 0.08, (DOOR_HEIGHT - 0.05) / 2, ROOM_DEPTH/2 + 0.15);
+            leftBeam.rotation.x = 0;
+            roomGroup.add(leftBeam);
+
+            // Center RFID beam (red) - pointing up from floor to RFID (wider)
+            const centerBeamGeometry = new THREE.ConeGeometry(0.5, DOOR_HEIGHT + 0.01, 32, 1, true);
+            const centerBeamMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
+            centerBeam = new THREE.Mesh(centerBeamGeometry, centerBeamMaterial);
+            centerBeam.position.set(0, (DOOR_HEIGHT + 0.01) / 2, ROOM_DEPTH/2);
+            centerBeam.rotation.x = 0;
+            roomGroup.add(centerBeam);
+
+            // Right sensor beam (green) - angled from floor pointing toward sensor (rotated 30 degrees)
+            const rightBeamGeometry = new THREE.ConeGeometry(0.4, DOOR_HEIGHT - 0.01, 32, 1, true);
+            const rightBeamMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
+            rightBeam = new THREE.Mesh(rightBeamGeometry, rightBeamMaterial);
+            // Position adjusted so tip touches sensor at top
+            const beamHeight = DOOR_HEIGHT - 2;
+            const angle = 30 * Math.PI / 180;
+            const offsetZ = Math.sin(angle) * beamHeight / 2;
+            const offsetY = Math.cos(angle) * beamHeight / 2;
+            rightBeam.position.set(
+                DOOR_WIDTH/2 - 0.2, //0.08, 
+                DOOR_HEIGHT - 0.01 - offsetY - 1.2, 
+                ROOM_DEPTH/2 - 0.15 + offsetZ - 0.3
+            );
+            rightBeam.rotation.x = 0; //5 * Math.PI / 180; // Rotate 30 degrees
+            rightBeam.rotation.z = 0; //-5 * Math.PI / 180; // Tilt 5 degrees
+            roomGroup.add(rightBeam);
+       
+        }
+
+        function createWire(x1, y1, z1, x2, y2, z2) {
+            const points = [];
+            points.push(new THREE.Vector3(x1, y1, z1));
+            points.push(new THREE.Vector3((x1 + x2)/2, y2 - 0.05, (z1 + z2)/2));
+            points.push(new THREE.Vector3(x2, y2, z2));
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const wireGeometry = new THREE.TubeGeometry(curve, 20, 0.01, 8, false);
+            const wireMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x000000,
+                roughness: 0.8
+            });
+            const wire = new THREE.Mesh(wireGeometry, wireMaterial);
+            roomGroup.add(wire);
+        }
+
+        function createPerson() {
+            personGroup = new THREE.Group();
+            
+            const scale = PERSON_HEIGHT / 1.8; // Scale to 6 feet tall
+            
+            // Body
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x3366cc });
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4 * scale, 0.6 * scale, 0.2 * scale),
+                bodyMaterial
+            );
+            body.position.y = 1.0 * scale;
+            body.position.x = 0;
+            body.position.z = 0;
+            body.castShadow = true;
+            personGroup.add(body);
+
+            // Head
+            const headMaterial = new THREE.MeshStandardMaterial({ color: 0xfdbcb4 });
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15 * scale, 16, 16),
+                headMaterial
+            );
+            head.position.y = 1.45 * scale;
+            head.castShadow = true;
+            personGroup.add(head);
+
+            // Arms - pushing position
+            const armMaterial = new THREE.MeshStandardMaterial({ color: 0xfdbcb4 });
+            const leftArm = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1 * scale, 0.5 * scale, 0.1 * scale),
+                armMaterial
+            );
+            leftArm.position.set(-0.25 * scale, 1.0 * scale, 0.15 * scale);
+            leftArm.rotation.x = 1.40;
+            leftArm.castShadow = true;
+            personGroup.add(leftArm);
+
+            const rightArm = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1 * scale, 0.5 * scale, 0.1 * scale),
+                armMaterial
+            );
+            rightArm.position.set(0.25 * scale, 1.0 * scale, 0.15 * scale);
+            rightArm.rotation.x = 1.45;
+            rightArm.castShadow = true;
+            personGroup.add(rightArm);
+
+            // Legs
+            const legMaterial = new THREE.MeshStandardMaterial({ color: 0x1e1e1e });
+            const leftLeg = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15 * scale, 0.6 * scale, 0.15 * scale),
+                legMaterial
+            );
+            leftLeg.position.set(-0.1 * scale, 0.4 * scale, 0);
+            leftLeg.castShadow = true;
+            personGroup.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15 * scale, 0.6 * scale, 0.15 * scale),
+                legMaterial
+            );
+            rightLeg.position.set(0.1 * scale, 0.4 * scale, 0);
+            rightLeg.castShadow = true;
+            personGroup.add(rightLeg);
+
+            personGroup.position.set(-2, 0, 1.5);
+            roomGroup.add(personGroup);
+        }
+
+        function createChair() {
+            chairGroup = new THREE.Group();
+            
+            const chairMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8b4513,
+                roughness: 0.7
+            });
+
+            const scale = PERSON_HEIGHT / 1.8; // Scale proportionally with person
+
+            // Seat
+            const seat = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5 * scale, 0.05 * scale, 0.5 * scale),
+                chairMaterial
+            );
+            seat.position.y = 0.5 * scale;
+            seat.castShadow = true;
+            seat.receiveShadow = true;
+            chairGroup.add(seat);
+
+            // Backrest
+            const backrest = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5 * scale, 0.5 * scale, 0.05 * scale),
+                chairMaterial
+            );
+            backrest.position.set(0, 0.75 * scale, -0.225 * scale);
+            backrest.castShadow = true;
+            chairGroup.add(backrest);
+
+            // Legs
+            const legPositions = [
+                [-0.2, 0.25, -0.2],
+                [0.2, 0.25, -0.2],
+                [-0.2, 0.25, 0.2],
+                [0.2, 0.25, 0.2]
+            ];
+
+            legPositions.forEach(pos => {
+                const leg = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.5 * scale, 8),
+                    chairMaterial
+                );
+                leg.position.set(pos[0] * scale, pos[1] * scale, pos[2] * scale);
+                leg.castShadow = true;
+                chairGroup.add(leg);
+            });
+
+            chairGroup.position.set(-2, 0, 2);
+            roomGroup.add(chairGroup);
+        }
+
+        function createLabel(text, x, y, z) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+            
+            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            context.font = 'Bold 18px Arial';
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            
+            const lines = text.split('\n');
+            lines.forEach((line, i) => {
+                context.fillText(line, 128, 45 + i * 25);
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, z);
+            sprite.scale.set(0.6, 0.3, 1);
+            roomGroup.add(sprite);
+        }
+
+        function onMouseDown(event) {
+            mouseDown = true;
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        }
+
+        function onMouseMove(event) {
+            if (!mouseDown) return;
+            
+            const deltaX = event.clientX - mouseX;
+            const deltaY = event.clientY - mouseY;
+            
+            targetRotationY += deltaX * 0.005;
+            targetRotationX += deltaY * 0.005;
+            
+            targetRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotationX));
+            
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        }
+
+        function onMouseUp() {
+            mouseDown = false;
+        }
+
+        function onWheel(event) {
+            camera.position.z += event.deltaY * 0.01;
+            camera.position.z = Math.max(5, Math.min(20, camera.position.z));
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            animationTime += 0.01;
+            
+            // Animate person walking from inside the room through the door to outside
+            // Person is BEHIND the chair, pushing it forward
+            const moveProgress = (Math.sin(animationTime * 0.25) + 1) / 2;
+            const startZ = 2;
+            const endZ = 7; // Going outside through the door
+            
+            const chairZ = startZ + (endZ - startZ) * moveProgress;
+            chairGroup.position.set(0, 0, chairZ);
+            
+            // Person is behind the chair (0.6 meters back)
+            personGroup.position.set(0, 0, chairZ - 0.6);
+            
+            // Make person face forward (toward door/outside)
+            personGroup.rotation.y = 0;
+            
+            // Animate walking
+            const walkCycle = Math.sin(animationTime * 3);
+            const scale = PERSON_HEIGHT / 1.8;
+            personGroup.children[4].rotation.x = walkCycle * 0.3; // left leg
+            personGroup.children[5].rotation.x = -walkCycle * 0.3; // right leg
+            
+            // Animate beams (pulsing effect only)
+            const pulse = Math.sin(animationTime * 2) * 0.1 + 0.3;
+            leftBeam.material.opacity = pulse;
+            centerBeam.material.opacity = pulse;
+            rightBeam.material.opacity = pulse;
+            
+            currentRotationX += (targetRotationX - currentRotationX) * 0.1;
+            currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+            
+            roomGroup.rotation.x = currentRotationX;
+            roomGroup.rotation.y = currentRotationY;
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>

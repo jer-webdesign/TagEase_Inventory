@@ -1,0 +1,23 @@
+import React from 'react';
+import './Footer.css';
+
+const Footer = () => {
+  const year = new Date().getFullYear();
+  return (
+    <footer className="site-footer">
+      <div className="footer-inner">
+        <div className="footer-left">
+          <div className="brand-small">TagEase</div>
+          <div className="muted">© {year} TagEase — All rights reserved.</div>
+        </div>
+        <div className="footer-right">
+          <a href="/about" className="footer-link">About</a>
+          <a href="/privacy" className="footer-link">Privacy</a>
+          <a href="/terms" className="footer-link">Terms</a>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
