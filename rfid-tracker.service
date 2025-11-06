@@ -1,0 +1,52 @@
+[Unit]
+Description=RFID Asset Tracking Service with WebSocket (RFID + Sensors)
+After=network.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/raspberry/rfid_tracker
+Environment="PATH=/home/raspberry/rfid_tracker/venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+Environment="FLASK_ENV=production"
+
+# Wait until required device nodes (udev symlinks) exist before starting
+ExecStartPre=/bin/sh -c 'count=0; while [ $count -lt 60 ]; do \
+  if [ -e /dev/rfid_reader ] && [ -e /dev/sensor_inside ] && [ -e /dev/sensor_outside ]; then exit 0; fi; \
+  sleep 1; count=$((count+1)); \
+  done; echo "Device wait timed out" >&2; exit 1'
+
+# Cleanup: Kill any processes using the ports
+ExecStartPre=/bin/sh -c 'fuser -k /dev/rfid_reader 2>/dev/null || true'
+ExecStartPre=/bin/sh -c 'fuser -k /dev/sensor_inside 2>/dev/null || true'
+ExecStartPre=/bin/sh -c 'fuser -k /dev/sensor_outside 2>/dev/null || true'
+ExecStartPre=/bin/sh -c 'fuser -k 5000/tcp 2>/dev/null || true'
+ExecStartPre=/bin/sleep 2
+
+# Fix permissions on all devices
+ExecStartPre=/bin/chmod 666 /dev/rfid_reader
+ExecStartPre=/bin/chmod 666 /dev/sensor_inside
+ExecStartPre=/bin/chmod 666 /dev/sensor_outside
+
+# Start the application with WebSocket support
+ExecStart=/home/raspberry/rfid_tracker/venv/bin/python /home/raspberry/rfid_tracker/app.py
+
+# Cleanup on stop: Release all serial ports and network port
+ExecStopPost=/bin/sh -c 'fuser -k /dev/rfid_reader 2>/dev/null || true'
+ExecStopPost=/bin/sh -c 'fuser -k /dev/sensor_inside 2>/dev/null || true'
+ExecStopPost=/bin/sh -c 'fuser -k /dev/sensor_outside 2>/dev/null || true'
+ExecStopPost=/bin/sh -c 'fuser -k 5000/tcp 2>/dev/null || true'
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Logging (view with: journalctl -u rfid-tracker -f)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rfid-tracker
+
+[Install]
+WantedBy=multi-user.target
