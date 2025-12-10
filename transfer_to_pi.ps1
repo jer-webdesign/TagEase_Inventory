@@ -13,6 +13,9 @@ param(
     
     [Parameter(Mandatory=$false)]
     [string]$PiUser = "raspberry"
+    ,
+    [Parameter(Mandatory=$false)]
+    [switch]$RestartService
 )
 
 Write-Host "========================================" -ForegroundColor Green
@@ -58,8 +61,21 @@ Write-Host "Step 2: Transferring rfid_tracker folder..." -ForegroundColor Yellow
 Write-Host "This may take a few minutes..." -ForegroundColor Gray
 
 try {
-    scp -r "$SourceDir\rfid_tracker" "${PiUser}@${PiIP}:/home/${PiUser}/"
-    Write-Host "Successfully transferred rfid_tracker folder" -ForegroundColor Green
+    # Upload to a temp directory on the Pi to allow atomic swap and backup
+    $remoteTemp = "/home/${PiUser}/rfid_tracker.upd"
+    scp -r "$SourceDir\rfid_tracker" "${PiUser}@${PiIP}:$remoteTemp"
+    Write-Host "Successfully uploaded rfid_tracker to remote temp path: $remoteTemp" -ForegroundColor Green
+    # Move into place atomically on the Pi and create a backup of the existing folder
+    $sshCmd = @"
+if [ -d /home/${PiUser}/rfid_tracker ]; then
+  sudo rm -rf /home/${PiUser}/rfid_tracker.bak || true
+  sudo mv /home/${PiUser}/rfid_tracker /home/${PiUser}/rfid_tracker.bak || true
+fi
+sudo mv $remoteTemp /home/${PiUser}/rfid_tracker
+sudo chown -R ${PiUser}:${PiUser} /home/${PiUser}/rfid_tracker
+echo 'REMOTE: rfid_tracker deployed and ownership set.'
+"@
+    ssh ${PiUser}@${PiIP} $sshCmd
 } catch {
     Write-Host "Failed to transfer rfid_tracker folder" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
@@ -102,6 +118,16 @@ try {
     Write-Host "Successfully transferred documentation" -ForegroundColor Green
 } catch {
     Write-Host "Failed to transfer documentation (optional)" -ForegroundColor Yellow
+}
+
+# Optionally restart the service on the Pi and show recent logs
+if ($RestartService) {
+    Write-Host "Restarting rfid-tracker.service on remote Pi..." -ForegroundColor Yellow
+    try {
+        ssh ${PiUser}@${PiIP} "sudo systemctl restart rfid-tracker.service && sudo journalctl -u rfid-tracker.service -n 60 --no-pager"
+    } catch {
+        Write-Host "Failed to restart service or fetch logs." -ForegroundColor Yellow
+    }
 }
 
 Write-Host ""

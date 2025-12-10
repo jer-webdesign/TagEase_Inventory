@@ -3,7 +3,7 @@ REM Check RFID Tracker Service Status
 REM Usage: check_service.bat <raspberry_pi_ip>
 
 if "%~1"=="" (
-    set PI_IP=192.168.182.23
+    set PI_IP=10.77.194.23
 ) else (
     set PI_IP=%~1
 )

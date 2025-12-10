@@ -3,7 +3,7 @@ REM Pull (download) app.py from Raspberry Pi to Windows
 REM Usage: pull_from_pi.bat <raspberry_pi_ip>
 
 if "%~1"=="" (
-    set PI_IP=192.168.182.23
+    set PI_IP=10.77.194.23
 ) else (
     set PI_IP=%~1
 )

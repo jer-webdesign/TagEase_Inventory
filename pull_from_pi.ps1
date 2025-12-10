@@ -3,7 +3,7 @@
 
 param(
     [Parameter(Mandatory=$false)]
-    [string]$PiIP = "192.168.182.23",
+    [string]$PiIP = "10.77.194.23",
     
     [Parameter(Mandatory=$false)]
     [string]$PiUser = "raspberry"
@@ -14,7 +14,7 @@ Write-Host "Pull app.py from Raspberry Pi" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
-$DestFile = "C:\TagEase_Inventory_V93\rfid_tracker\app.py"
+$DestFile = "C:\TagEase_Inventory_V94 - Copy\rfid_tracker\app.py"
 
 Write-Host "Downloading from ${PiUser}@${PiIP}..." -ForegroundColor Yellow
 

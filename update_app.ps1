@@ -14,7 +14,7 @@ Write-Host "Quick Update - app.py only" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
-$SourceFile = "C:\TagEase_Inventory_V93\rfid_tracker\app.py"
+$SourceFile = "C:\TagEase_Inventory_V94 - Copy\rfid_tracker\app.py"
 
 if (-not (Test-Path $SourceFile)) {
     Write-Host "Error: Source file not found: $SourceFile" -ForegroundColor Red
