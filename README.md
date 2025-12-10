@@ -13,8 +13,6 @@ Comprehensive README for the TagEase Inventory project. This repository contains
 - Troubleshooting
 - Testing
 - Contributing
-- License
-
 ---
 
 ## Project overview
@@ -165,6 +163,7 @@ Style notes:
 - `frontend_inventory/src/hooks/useRFIDWebSocket.js` — client WebSocket hookup
 - `frontend_inventory/src/pages/Dashboard/IntegratedDashboard.jsx` — Recent Activity UI and sensor visualization
 ---
+
 
 
 
