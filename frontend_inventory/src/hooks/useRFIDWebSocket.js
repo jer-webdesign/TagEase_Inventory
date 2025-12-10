@@ -22,11 +22,13 @@ const useRFIDWebSocket = (apiBaseUrl) => {
 
   // Connect to WebSocket
   useEffect(() => {
-    if (!apiBaseUrl) return;
+    // apiBaseUrl may be an empty string to indicate same-origin (relative path).
+    if (apiBaseUrl === undefined) return;
 
-    console.log('Connecting to WebSocket:', apiBaseUrl);
+    console.log('Connecting to WebSocket:', apiBaseUrl || '(same-origin)');
     
-    const newSocket = io(apiBaseUrl, {
+    const connectUrl = apiBaseUrl && apiBaseUrl.length > 0 ? apiBaseUrl : undefined;
+    const newSocket = io(connectUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,

@@ -1,12 +1,12 @@
 // frontend/src/pages/Login/Login.jsx
 import React, { useState } from 'react';
-import { Package, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import './Login.css';
-import splash from '../../assets/images/TagEase_transparent.png';
+import splash from '../../assets/images/TagEase_logo.png';
 
 const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -17,22 +17,17 @@ const Login = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      if (!username) {
-        throw new Error('Please enter a username');
+      if (!email) {
+        throw new Error('Please enter an email address');
       }
 
-      // Client-side guard: only allow Admin username to proceed
-      if (username !== 'Admin') {
-        throw new Error('Only Admin can login');
-      }
-
-      // Call your API endpoint for login (sends username + password)
-      const response = await fetch('/api/auth/login', {
+      // Call your API endpoint for login (sends email + password)
+      const response = await fetch(`${import.meta.env.VITE_API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       // Some responses (404, empty) may not contain valid JSON. Read as text first
@@ -43,22 +38,27 @@ const Login = ({ onLogin }) => {
         try {
           data = JSON.parse(text);
         } catch (parseErr) {
-          // Non-JSON response — capture raw text for debugging
+          // Non-JSON response – capture raw text for debugging
           data = { message: text };
         }
       }
 
       if (!response.ok) {
+        // Surface helpful message for server-side errors (5xx)
+        if (response.status >= 500) {
+          const serverMsg = (data && data.message) ? `: ${data.message}` : '';
+          throw new Error(`Server error${serverMsg} (status ${response.status})`);
+        }
         throw new Error((data && data.message) || `Login failed (status ${response.status})`);
       }
 
       // Store JWT token in localStorage
-      localStorage.setItem('token', data.token);
+      // localStorage.setItem('token', data.token);
       
       // Optionally store user info
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
+      // if (data.user) {
+      //   localStorage.setItem('user', JSON.stringify(data.user));
+      // }
 
       // Call parent callback if provided
       if (onLogin) {
@@ -66,11 +66,11 @@ const Login = ({ onLogin }) => {
       }
 
       // Reset form
-  setPassword('');
-  setUsername('');
+      setPassword('');
+      setEmail('');
       
     } catch (err) {
-      setError(err.message || 'Invalid password. Please try again.');
+      setError(err.message || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -87,30 +87,12 @@ const Login = ({ onLogin }) => {
           {/* Left Side - Branding */}
           <div className="login-branding">
             <div className="branding-content">
-              <img src={splash} style={{ paddingLeft: '3rem', width: '25%', align: 'center' }} alt="TagEase splash" className="login-splash" />
-              {/* <div className="brand-logo-large">
-                <Package size={32} />
-              </div> */}
-              <h1 className="brand-title">TagEase</h1>
-              <p className="brand-subtitle">
-                Tag, Thrust, and Track
-              </p>
-              <div className="brand-features">
-                <div className="brand-feature">
-                  <div className="feature-check">✓</div>
-                  {/* <span>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris</span> */}
-                  <span>Simplifying inventory management</span>
-                </div>
-                <div className="brand-feature">
-                  <div className="feature-check">✓</div>
-                  {/* <span>Natus error sit voluptatem accusantium doloremque laudantium totam rem ape</span> */}
-                  <span>Real-time asset tracking</span>
-                </div>
-                <div className="brand-feature">
-                  <div className="feature-check">✓</div>
-                    {/* <span>Mollit anim id est laborum lorem ipsum dolor sit amet</span>  */}
-                    <span>Optimize workflow efficiency</span>
-                </div>
+              <div className="brand-logo-container">
+                <img 
+                  src={splash} 
+                  alt="TagEase Logo" 
+                  className="brand-logo-image" 
+                />
               </div>
             </div>
           </div>
@@ -119,32 +101,33 @@ const Login = ({ onLogin }) => {
           <div className="login-form-section">
             <div className="login-form-container">
               <div className="login-header">
-                <h2 className="login-title">Welcome to TagEase</h2>
-                <p className="login-subtitle">Enter your password to continue</p>
+                <h2 className="login-title">Welcome!</h2>
+                <p className="login-subtitle">Input your login credentials</p>
               </div>
 
               <form onSubmit={handleSubmit} className="login-form">
                 {error && (
                   <div className="error-message">
-                    <AlertCircle size={20} />
+                    <AlertCircle size={18} />
                     <span>{error}</span>
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label htmlFor="username" className="form-label">
-                    Username
+                  <label htmlFor="email" className="form-label">
+                    Email
                   </label>
                   <div className="input-wrapper">
                     <input
-                      type="text"
-                      id="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your.email@example.com"
                       className="form-input"
                       required
                       disabled={isLoading}
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -154,16 +137,16 @@ const Login = ({ onLogin }) => {
                     Password
                   </label>
                   <div className="input-wrapper">
-                    <Lock size={20} className="input-icon" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       id="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
+                      placeholder="••••••••••"
                       className="form-input"
                       required
                       disabled={isLoading}
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -171,21 +154,21 @@ const Login = ({ onLogin }) => {
                       className="password-toggle"
                       aria-label="Toggle password visibility"
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
 
                 <button type="submit" className="btn-login" disabled={isLoading}>
-                  {isLoading ? 'Signing In...' : 'Sign In'}
+                  {isLoading ? 'Signing In...' : 'Login'}
                 </button>
-              </form>
+                
+                <a href="#" className="forgot-link">
+                  Forgot Password?
+                </a>
 
-              {/* <div className="login-footer">
-                <p className="help-text">
-                  Need help accessing your account? Contact support.
-                </p>
-              </div> */}
+
+              </form>
             </div>
           </div>
         </div>

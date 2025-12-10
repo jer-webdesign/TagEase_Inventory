@@ -43,8 +43,8 @@
 
 .status-card {
   background-color: var(--surface);
-  border-radius: 0.75rem;
-  padding: 1.5rem 3.5rem;
+  border-radius: 1.25rem;
+  padding: 1.5rem 2rem;
   box-shadow: 0 6px 18px var(--card-shadow);
   display: flex;
   align-items: center;
@@ -77,10 +77,10 @@
   color: #d1fae5;
 }
 
-.status-icon-orange {
+/* .status-icon-orange {
   background-color: #9a3412;
   color: #fed7aa;
-}
+} */
 
 .status-icon-purple {
   background-color: #6b21a8;
@@ -89,16 +89,18 @@
 
 .status-content {
   flex: 1;
+  text-align: left;
+  padding-left: 2rem;
 }
 
 .status-label {
-  font-size: 1.25rem;
-  color: var(--muted);
+  font-size: 1rem;
+  color: #9b9b9b;
   margin-bottom: 0.25rem;
 }
 
 .status-value {
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   font-weight: 600;
   text-transform: capitalize;
 }
@@ -108,7 +110,7 @@
 }
 
 .status-disconnected {
-  color: #ef4444;
+  color: #9b9b9b;
 }
 
 /* ========================================
@@ -297,7 +299,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
+  width: 55px;
   height: 40px;
   background-color: rgba(255, 255, 255, 0.1);
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -547,55 +549,76 @@
   font-weight: 400;
 }
 
-.control-slider {
+/* .control-slider {
   width: 100%;
   height: 8px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.1);
+  border-color: black;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
-}
+} */
+
+/* .control-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 30px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--slider-progress, 50%), rgba(255, 255, 255, 0.1) var(--slider-progress, 50%), rgba(255, 255, 255, 0.1) 100%);
+} */
+
+/* .control-slider::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+} */
+
+/* .control-slider::-moz-range-progress {
+  height: 8px;
+  border-radius: 4px;
+  background: #3b82f6;
+} */
 
 .control-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #3b82f6;
+  width: 50px;
+  height: 40px;
+  border-radius: 6px;
+  background: url('/src/assets/images/Handle.svg') center/contain no-repeat;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 1); */
   transition: all 0.2s;
 }
 
-.control-slider::-webkit-slider-thumb:hover {
-  background: #2563eb;
-  transform: scale(1.1);
-}
+/* .control-slider::-webkit-slider-thumb:hover {
+  background: #1860f0;
+  transform: scale(1.05);
+} */
 
-.control-slider::-moz-range-thumb {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #3b82f6;
+/* .control-slider::-moz-range-thumb {
+  width: 50px;
+  height: 30px;
+  border-radius: 6px;
+  background: #0b63fa;
   cursor: pointer;
   border: none;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   transition: all 0.2s;
-}
+} */
 
-.control-slider::-moz-range-thumb:hover {
-  background: #2563eb;
-  transform: scale(1.1);
-}
+/* .control-slider::-moz-range-thumb:hover {
+  background: #1a63f3;
+  transform: scale(1.05);
+} */
 
-.control-slider:disabled {
+/* .control-slider:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
+} */
 
-.control-range-labels {
+/* .control-range-labels {
   position: relative;
   width: 100%;
   height: 30px;
@@ -610,7 +633,7 @@
   white-space: nowrap;
   transform: translateX(-50%);
   text-align: center;
-}
+} */
 
 /* ========================================
    DASHBOARD SECTIONS
@@ -619,6 +642,18 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+  /* Allow vertical scrolling when dashboard content grows */
+  /* overflow-y: auto; */
+  /* -webkit-overflow-scrolling: touch; */
+  position: relative;
+  max-height: 60vh; /* keep dashboard sections scrollable within viewport */
+  padding-right: 8px; /* space to account for visible scrollbar */
+}
+
+@media (max-width: 900px) {
+  .dashboard-sections {
+    max-height: 50vh;
+  }
 }
 
 .section-card {
@@ -644,42 +679,100 @@
 .activity-section {
   background-color: var(--surface);
   border-radius: 0.75rem;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 6px 18px var(--card-shadow);
 }
 
 .activity-table {
   overflow-x: auto;
-  max-height: 800px; /* Approximately 20 rows at ~40px per row */
   overflow-y: auto;
+  /* -webkit-overflow-scrolling: touch; */
+  position: relative;
+  max-height: calc(100vh - 550px); /* Dynamically adjust based on viewport, leaving space for header/controls/footer */
+  display: block; /* Required for overflow to work properly */
+}
+
+/* Force scrollbar to always be visible */
+.activity-table::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* .activity-table::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+} */
+
+.activity-table::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+.activity-table::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Make activity table more compact on smaller screens so scrollbar appears earlier */
+@media (max-width: 900px) {
+  .activity-table {
+    max-height: calc(100vh - 600px); /* Adjust for smaller viewports with more header space */
+  }
 }
 
 .activity-table table {
   width: 100%;
   border-collapse: collapse;
+  display: table; /* Ensure proper table display */
+}
+
+/* Use fixed layout so column widths are consistent and spacing is predictable */
+.activity-table table {
+  table-layout: fixed;
+}
+
+/* Explicit column width hints to keep uniform gaps between columns */
+.activity-table th:nth-child(1), .activity-table td:nth-child(1) { width: 25%; } /* RFID Tag */
+.activity-table th:nth-child(2), .activity-table td:nth-child(2) { width: 15%; }  /* Direction */
+.activity-table th:nth-child(3), .activity-table td:nth-child(3) { width: 16%; } /* Room Name */
+.activity-table th:nth-child(4), .activity-table td:nth-child(4) { width: 22%; } /* Building Name */
+.activity-table th:nth-child(5), .activity-table td:nth-child(5) { width: 25%; } /* Date Time */
+
+/* Keep activity table header fixed while the table container scrolls */
+.activity-table thead th {
+  position: sticky;
+  top: 0;
+  right: 3;
+  z-index: 5;
+  /* background: var(--surface); */
+  background-color: #414141; /* blue header like the design */
+  /* ensure header visually separates from rows */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 
 .activity-table th {
   text-align: left;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--muted);
+  /* color: var(--muted); */
+  color: white;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 4rem 0.6rem 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .activity-table td {
-  padding: 1rem;
+  padding: 0.9rem 4rem 0.9rem 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  font-size: 0.875rem;
+  /* font-size: 0.875rem; */
+  font-size: 1rem;  
   color: var(--text);
 }
 
 .tag-cell {
-  font-family: monospace;
+  /* font-family: monospace; */
   color: #3b82f6;
+  font-size: 0.9rem;
 }
 
 .location-cell {
@@ -689,6 +782,12 @@
 .time-cell {
   color: var(--muted);
   font-size: 0.813rem;
+  text-align: right;
+}
+
+/* Align DATE header to the right to match cells */
+.activity-table th:last-child {
+  text-align: right;
 }
 
 .direction-badge {
@@ -793,7 +892,8 @@
 }
 
 .action-btn:hover {
-  transform: translateY(-1px);
+  /* transform: translateY(-1px); */
+  background-color: #5085f8;  
 }
 
 .action-btn:disabled {
@@ -802,23 +902,38 @@
 }
 
 .action-btn-primary {
-  background-color: var(--accent);
+  background-color: #ef5a22;
   color: #ffffff;
 }
 
 .action-btn-primary:hover {
-  background-color: #bd2e14;
+  background-color: #c73e0d;
 }
 
 .action-btn-danger {
-  background-color: #dc3545;
+  background-color: #ef5a22;
   color: #ffffff;
 }
 
 .action-btn-danger:hover {
-  background-color: #b02a37;
-  transform: translateY(-1px);
+  background-color: #c73e0d;
+  /* transform: translateY(-1px); */
   box-shadow: 0 6px 12px rgba(208, 67, 75, 0.15);
+}
+
+/* Small modifier for compact action buttons used in headers */
+.action-btn-small {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* Section header layout for title + actions */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .action-btn-hard {

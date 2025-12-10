@@ -83,7 +83,7 @@
 
 .search-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: #ffffff;
 }
 
 .btn-filter {
@@ -91,7 +91,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background-color: var(--accent);
+  background-color: #1d4ed8;
+  color: rgb(197, 197, 197); 
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -100,7 +101,7 @@
 }
 
 .btn-filter:hover {
-  background-color: #d34917;
+  background-color: #1039a8;
   color: rgb(197, 197, 197); 
 }
 
@@ -109,34 +110,122 @@
   border-radius: 0.5rem;
   box-shadow: 0 6px 18px var(--card-shadow);
   overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  max-height: calc(100vh - 400px); /* Dynamically adjust based on viewport */
+}
+
+/* Scrollbar styling */
+.inventory-table-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.inventory-table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+.inventory-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .inventory-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto; /* allow columns to size to content so values don't truncate */
 }
 
+/* Keep header cells fixed while scrolling the container */
+.inventory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(2px);
+}
+
+/* Column width hints to keep header and rows aligned */
+.inventory-table th:nth-child(1), .inventory-table td:nth-child(1) { width: 18%; } /* ASSET NAME */
+.inventory-table th:nth-child(2), .inventory-table td:nth-child(2) { width: 22%; } /* TAG ID */
+.inventory-table th:nth-child(3), .inventory-table td:nth-child(3) { width: 10%; } /* DIRECTION */
+.inventory-table th:nth-child(4), .inventory-table td:nth-child(4) { width: 15%; } /* ROOM NAME */
+.inventory-table th:nth-child(5), .inventory-table td:nth-child(5) { width: 18%; } /* BUILDING NAME */
+.inventory-table th:nth-child(6), .inventory-table td:nth-child(6) { width: 17%; } /* DATE TIME */
+
 .inventory-table thead {
-  background-color: rgba(255,255,255,0.02);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  background-color: #3d3d3d; /* gray header like the design */
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+}
+
+/* Keep header cells fixed while tbody scrolls */
+.inventory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: #3d3d3d; /* match header color */
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1rem 1.25rem;
+  font-size: 0.95rem;
+}
+
+/* Round the top corners of the header row to match container */
+.inventory-table thead th:first-child {
+  border-top-left-radius: 0.5rem;
+}
+.inventory-table thead th:last-child {
+  border-top-right-radius: 0.5rem;
 }
 
 .inventory-table th {
-  padding: 1rem;
+  padding: 0.9rem 1rem;
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
-  /* color: var(--muted); */
   color: #f7f7f7;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+/* Keep headers single-line, but allow data cells to wrap so full values display */
+.inventory-table thead th {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .inventory-table td {
-  padding: 1rem;
+  /* Allow wrapping for content cells so long asset names and building names are visible */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Keep tag id monospace but allow it to break if necessary */
+.inventory-table td:nth-child(2) {
+  font-family: monospace;
+  word-break: break-all;
+  font-size: 0.9rem;
+}
+
+/* Prevent the direction badge from wrapping */
+.inventory-table td:nth-child(3) .status-badge {
+  white-space: nowrap;
+}
+
+.inventory-table td {
+  padding: 1rem 1rem;
   border-bottom: 1px solid rgba(255,255,255,0.03);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: var(--text);
+}
+
+.time-cell {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
 }
 
 .inventory-table tbody tr:last-child td {
@@ -256,6 +345,13 @@
     text-align: right;
   }
 
+  /* Restore wrapping behavior on small screens where the table stacks */
+  .inventory-table td {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
   .inventory-table td::before {
     content: attr(data-label);
     position: absolute;
@@ -263,5 +359,12 @@
     font-weight: 600;
     color: var(--muted);
     text-align: left;
+  }
+}
+
+/* Adjust table container height for smaller screens */
+@media (max-width: 900px) {
+  .inventory-table-container {
+    max-height: calc(100vh - 500px);
   }
 }

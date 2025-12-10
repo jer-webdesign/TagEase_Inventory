@@ -7,12 +7,12 @@ import Footer from './components/Footer/Footer';
 import IntegratedDashboard from './pages/Dashboard/IntegratedDashboard';
 import Inventory from './pages/Inventory/Inventory';
 import Catalog from './pages/Catalog/Catalog';
-import About from './pages/About/About';
+import Support from './pages/Support/Support';
 import Login from './pages/Login/Login';
 import './App.css';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('about');
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check for token on mount
@@ -32,7 +32,7 @@ function App() {
 
   const handleLogin = (data) => {
     setIsAuthenticated(true);
-    setCurrentPage('about');
+    setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
@@ -40,7 +40,7 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
-    setCurrentPage('about');
+    setCurrentPage('dashboard');
   };
 
   const renderPage = () => {
@@ -61,10 +61,10 @@ function App() {
         return <Inventory />;
       case 'catalog':
         return <Catalog />;
-      case 'about':
-        return <About />;
+      case 'support':
+        return <Support />;
       default:
-        return <About />;
+        return <Support />;
     }
   };
 

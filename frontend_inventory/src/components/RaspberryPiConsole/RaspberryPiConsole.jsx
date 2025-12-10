@@ -11,9 +11,9 @@ const RaspberryPiConsole = ({ apiBaseUrl, onClose }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [showCredentials, setShowCredentials] = useState(true);
   const [credentials, setCredentials] = useState({
-    host: import.meta.env.VITE_SSH_HOST || 'localhost',
+    host: import.meta.env.VITE_SSH_HOST || '10.77.194.23',
     port: parseInt(import.meta.env.VITE_SSH_PORT) || 22,
-    username: import.meta.env.VITE_SSH_USERNAME || 'pi',
+    username: import.meta.env.VITE_SSH_USERNAME || 'raspberry',
     password: import.meta.env.VITE_SSH_PASSWORD || ''
   });
   const [status, setStatus] = useState('');

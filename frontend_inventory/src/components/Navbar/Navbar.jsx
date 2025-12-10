@@ -1,7 +1,7 @@
 // frontend/src/components/Navbar/Navbar.jsx
 import React, { useState } from 'react';
 import { Menu, X, LogOut } from 'lucide-react';
-import logo from '../../assets/images/TagEase_logo.svg';
+import logo from '../../assets/images/TagEase_white_logo.png';
 import './Navbar.css';
 
 const Navbar = ({ currentPage, setCurrentPage, onLogout }) => {
@@ -28,7 +28,7 @@ const Navbar = ({ currentPage, setCurrentPage, onLogout }) => {
     { label: 'Reader Setup', key: 'dashboard' },
     { label: 'Inventory', key: 'inventory' },
     { label: 'Catalog', key: 'catalog' },
-    { label: 'About', key: 'about' }
+    { label: 'Support', key: 'support' }
   ];
 
   return (

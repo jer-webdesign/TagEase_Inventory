@@ -7,13 +7,13 @@ const Footer = () => {
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-left">
-          <div className="brand-small">TagEase</div>
+          {/* <div className="brand-small">TagEase</div> */}
           <div className="muted">© {year} TagEase — All rights reserved.</div>
         </div>
         <div className="footer-right">
-          <a href="/about" className="footer-link">About</a>
-          <a href="/privacy" className="footer-link">Privacy</a>
-          <a href="/terms" className="footer-link">Terms</a>
+          <a href="#" onClick={(e) => e.preventDefault()} className="footer-link">About</a>
+          <a href="#" onClick={(e) => e.preventDefault()} className="footer-link">Privacy</a>
+          <a href="#" onClick={(e) => e.preventDefault()} className="footer-link">Terms</a>          
         </div>
       </div>
     </footer>
