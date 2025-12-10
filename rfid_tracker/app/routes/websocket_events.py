@@ -33,8 +33,8 @@ def init_websocket_handlers(socketio):
         stats = tracking_service.get_statistics()
         emit('statistics_update', stats)
         
-        # Send recent records
-        recent_records = tracking_service.get_all_records({'limit': 10})
+        # Send recent records (no limit - display all with scrollbar)
+        recent_records = tracking_service.get_all_records()
         emit('records_update', {'records': recent_records, 'count': len(recent_records)})
     
     @socketio.on('disconnect')
@@ -58,7 +58,7 @@ def init_websocket_handlers(socketio):
     @socketio.on('request_records')
     def handle_request_records(data=None):
         """Handle client request for records with optional filters"""
-        filters = data if data else {'limit': 10}
+        filters = data if data else {}
         records = tracking_service.get_all_records(filters)
         emit('records_update', {'records': records, 'count': len(records)})
     
@@ -78,7 +78,7 @@ def init_websocket_handlers(socketio):
                 socketio.emit('config_update', {
                     'rfid_power': rfid_reader.read_power,
                     'sensor_range': sensor_manager.sensor_inside.detection_range
-                }, broadcast=True)
+                })
             else:
                 emit('error', {'message': 'Failed to update RFID power'})
         except Exception as e:
@@ -105,7 +105,7 @@ def init_websocket_handlers(socketio):
             socketio.emit('config_update', {
                 'rfid_power': rfid_reader.read_power,
                 'sensor_range': sensor_manager.sensor_inside.detection_range
-            }, broadcast=True)
+            })
         except Exception as e:
             emit('error', {'message': f'Error updating sensor range: {str(e)}'})
     
@@ -139,12 +139,19 @@ def init_websocket_handlers(socketio):
             if not confirm:
                 emit('error', {'message': 'Confirmation required to clear records'})
                 return
-            
-            tracking_service.clear_all_records()
-            
+            ok = False
+            try:
+                ok = tracking_service.clear_all_records()
+            except Exception as e:
+                print(f"[ERROR] Exception in clear_all_records (ws): {e}")
+
+            if not ok:
+                emit('error', {'message': 'Failed to clear records (server error)'} )
+                return
+
             # Broadcast to all clients
-            socketio.emit('records_cleared', {}, broadcast=True)
-            socketio.emit('statistics_update', tracking_service.get_statistics(), broadcast=True)
+            socketio.emit('records_cleared', {})
+            socketio.emit('statistics_update', tracking_service.get_statistics())
             emit('success', {'message': 'All records cleared'})
         except Exception as e:
             emit('error', {'message': f'Error clearing records: {str(e)}'})
@@ -180,14 +187,14 @@ def broadcast_record_added(socketio, record):
     
     # Also send updated statistics
     stats = tracking_service.get_statistics()
-    socketio.emit('statistics_update', stats, broadcast=True)
+    socketio.emit('statistics_update', stats)
     
-    # Send updated recent records
-    recent_records = tracking_service.get_all_records({'limit': 10})
+    # Send updated recent records (no limit - display all with scrollbar)
+    recent_records = tracking_service.get_all_records()
     socketio.emit('records_update', {
         'records': recent_records,
         'count': len(recent_records)
-    }, broadcast=True)
+    })
 
 
 def broadcast_status_update(socketio, status_data):
@@ -195,7 +202,7 @@ def broadcast_status_update(socketio, status_data):
     Broadcast status update to all connected clients
     Called when system status changes
     """
-    socketio.emit('status_update', status_data, broadcast=True)
+    socketio.emit('status_update', status_data)
 
 
 def broadcast_sensor_activity(socketio, sensor_location, detected, distance=0):
@@ -213,4 +220,4 @@ def broadcast_sensor_activity(socketio, sensor_location, detected, distance=0):
         'detected': detected,
         'distance': distance,
         'timestamp': tracking_service.get_status().get('timestamp', '')
-    }, broadcast=True)
+    })

@@ -259,14 +259,17 @@ class SensorManager:
         """Determine movement direction"""
         inside_detected, outside_detected = self.check_human_detection()
         
+        # New logic: inside-only => IN, outside-only => OUT
+        # If both detected, the sensor with the later timestamp indicates final location
         if inside_detected and not outside_detected:
-            return "OUT"
-        elif outside_detected and not inside_detected:
             return "IN"
+        elif outside_detected and not inside_detected:
+            return "OUT"
         elif inside_detected and outside_detected:
             inside_time = self.sensor_inside.get_latest_detection()
             outside_time = self.sensor_outside.get_latest_detection()
-            return "OUT" if inside_time > outside_time else "IN"
+            # If inside detected later than outside, final movement is IN, otherwise OUT
+            return "IN" if inside_time > outside_time else "OUT"
         
         return None
     

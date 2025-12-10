@@ -1,6 +1,9 @@
 from flask import Blueprint, jsonify, request
 from app.services.tracking_service import tracking_service
-from app.utils.helpers import validate_direction
+from app.utils.helpers import validate_direction, load_json_file, save_json_file
+from flask import current_app
+import os, json
+from datetime import datetime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -93,9 +96,18 @@ def clear_records():
             'status': 'error',
             'message': 'Add ?confirm=true to clear all records'
         }), 400
-    
-    tracking_service.clear_all_records()
-    
+    ok = False
+    try:
+        ok = tracking_service.clear_all_records()
+    except Exception as e:
+        print(f"[ERROR] Exception clearing records: {e}")
+
+    if not ok:
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to clear records (check server permissions)'
+        }), 500
+
     return jsonify({
         'status': 'success',
         'message': 'All records cleared'

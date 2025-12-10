@@ -34,6 +34,9 @@ class Config:
     
     # Data Storage
     DATA_FILE = os.getenv('DATA_FILE', 'data/tag_tracking.json')
+    
+    # Dispatcher Configuration
+    DISPATCHER_URL = os.getenv('DISPATCHER_URL', 'http://138.68.255.116:8080')
 
 
 class DevelopmentConfig(Config):
