@@ -164,11 +164,7 @@ Style notes:
 - `rfid_tracker/data/tag_tracking.json` — persisted records
 - `frontend_inventory/src/hooks/useRFIDWebSocket.js` — client WebSocket hookup
 - `frontend_inventory/src/pages/Dashboard/IntegratedDashboard.jsx` — Recent Activity UI and sensor visualization
-
-## Final notes
-
-If you want me to deploy any of these README changes to the Pi or add a small verification script to run on the Pi to confirm sensor/RFID readiness, tell me which one and I will add it and run it for you.
-
 ---
 
-Last updated: 2025-11-05
+
+
